@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日本 — Personal Japan Travel Map</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #D63031;
+    --red-dim: #8B1A1A;
+    --bg: #0d0d0d;
+    --bg2: #161616;
+    --bg3: #1f1f1f;
+    --border: #2a2a2a;
+    --text: #e8e4dc;
+    --text-dim: #888;
+    --white: #ffffff;
+    --sidebar-w: 340px;
+
+    --c-food:        #FF6B6B;
+    --c-bookshop:    #4ECDC4;
+    --c-cards:       #C39BD3;
+    --c-fashion:     #F39C12;
+    --c-attraction:  #2ECC71;
+    --c-photo:       #F7DC6F;
+    --c-shrine:      #E74C3C;
+    --c-cafe:        #CDA077;
+    --c-pokemon:     #FFD700;
+    --c-market:      #1ABC9C;
+    --c-bar:         #85C1E9;
+    --c-onsen:       #EB6FA8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    height: calc(100vh - 40px);
+    top: 20px;
+    left: 20px;
+    background: rgba(16,16,16,0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 1000;
+    position: absolute;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  }
+
+  #sidebar-header {
+    padding: 22px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+  }
+
+  #sidebar-header::before {
+    content: '日本';
+    position: absolute;
+    right: -10px;
+    top: -14px;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 88px;
+    font-weight: 700;
+    color: var(--red-dim);
+    opacity: 0.18;
+    pointer-events: none;
+    line-height: 1;
+  }
+
+  #sidebar-header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    letter-spacing: 3px;
+    color: var(--white);
+    line-height: 1;
+  }
+
+  #sidebar-header h1 span {
+    color: var(--red);
+  }
+
+  #sidebar-header p {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 5px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  #stat-bar {
+    display: flex;
+    gap: 16px;
+    padding: 10px 20px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  #stat-bar span { color: var(--text); font-weight: 500; }
+
+  #search-wrap {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  #search-wrap input {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    transition: border-color .2s;
+  }
+
+  #search-wrap input:focus { border-color: var(--red); }
+  #search-wrap input::placeholder { color: var(--text-dim); }
+
+  #cat-filters {
+    padding: 10px 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .cat-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all .15s;
+    letter-spacing: .5px;
+    background: transparent;
+    opacity: 0.55;
+  }
+
+  .cat-btn.active { opacity: 1; }
+  .cat-btn:hover { opacity: 0.9; transform: scale(1.04); }
+
+  #city-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .city-tab {
+    flex: 1;
+    padding: 9px 4px;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    border-bottom: 2px solid transparent;
+    transition: all .15s;
+  }
+
+  .city-tab.active { color: var(--white); border-bottom-color: var(--red); }
+  .city-tab:hover { color: var(--text); }
+
+  #location-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+
+  #location-list::-webkit-scrollbar { width: 4px; }
+  #location-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .loc-item {
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background .12s;
+    border-left: 3px solid transparent;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .loc-item:hover { background: var(--bg3); }
+  .loc-item.active { background: var(--bg3); border-left-color: var(--red); }
+
+  .loc-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+
+  .loc-info { flex: 1; min-width: 0; }
+  .loc-name { font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+  .loc-meta { font-size: 10px; color: var(--text-dim); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .loc-note-badge {
+    font-size: 9px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1px 6px;
+    color: var(--red);
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 3px;
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── MAP ── */
+  #map {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+  }
+
+  /* ── LEAFLET OVERRIDES ── */
+  .leaflet-popup-content-wrapper {
+    background: var(--bg2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.6);
+    font-family: 'DM Mono', monospace;
+    padding: 0;
+    max-width: 320px;
+    min-width: 260px;
+  }
+
+  .leaflet-popup-content {
+    margin: 0 !important;
+  }
+
+  .leaflet-popup-tip {
+    background: var(--border) !important;
+  }
+
+  .popup-header {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .popup-cat-tag {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 10px;
+    border: 1px solid;
+    display: inline-block;
+    margin-bottom: 6px;
+  }
+
+  .popup-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--white);
+    line-height: 1.3;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .popup-address {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+
+  .popup-body { padding: 12px 16px; }
+
+  .popup-note {
+    font-size: 11px;
+    color: var(--red);
+    background: rgba(214,48,49,0.08);
+    border-left: 2px solid var(--red);
+    padding: 6px 10px;
+    border-radius: 0 4px 4px 0;
+    margin-bottom: 10px;
+    font-style: italic;
+  }
+
+  .popup-guide {
+    font-size: 11.5px;
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  .custom-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    box-shadow: 0 2px 8px rgba(0,0,0,.5);
+    border: 2px solid rgba(255,255,255,0.2);
+    font-size: 13px;
+    transition: transform .1s;
+  }
+
+  .custom-marker span { transform: rotate(45deg); display: block; }
+
+  .leaflet-marker-icon:hover .custom-marker { transform: rotate(-45deg) scale(1.2); }
+
+  .no-results {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dim);
+    font-size: 12px;
+  }
+
+  /* mobile */
+  @media (max-width: 640px) {
+    #sidebar {
+      width: calc(100vw - 24px);
+      left: 12px;
+      top: 12px;
+      height: 55vh;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div id="sidebar-header">
+    <h1>JAPAN <span>MAP</span></h1>
+    <p>Personal Travel Guide — 日本</p>
+  </div>
+  <div id="stat-bar">
+    <div>Pins: <span id="count-total">0</span></div>
+    <div>Showing: <span id="count-showing">0</span></div>
+  </div>
+  <div id="search-wrap">
+    <input id="search" type="text" placeholder="🔍  Search locations...">
+  </div>
+  <div id="city-tabs">
+    <button class="city-tab active" data-city="all">ALL</button>
+    <button class="city-tab" data-city="tokyo">TOKYO</button>
+    <button class="city-tab" data-city="osaka">OSAKA</button>
+    <button class="city-tab" data-city="kyoto">KYOTO</button>
+    <button class="city-tab" data-city="other">OTHER</button>
+  </div>
+  <div id="cat-filters"></div>
+  <div id="location-list"></div>
+</div>
+
+<div id="map"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// ─────────────────────────────────────────────────────────────
+//  CATEGORY CONFIG
+// ─────────────────────────────────────────────────────────────
+const CATS = {
+  food:       { label: "🍜 Food",        color: "#FF6B6B" },
+  bookshop:   { label: "📚 Book Off",    color: "#4ECDC4" },
+  cards:      { label: "🃏 Cards/TCG",   color: "#C39BD3" },
+  fashion:    { label: "👟 Fashion",     color: "#F39C12" },
+  attraction: { label: "🏙️ Attraction",  color: "#2ECC71" },
+  photo:      { label: "📸 Photo Spot",  color: "#F7DC6F" },
+  shrine:     { label: "⛩️ Shrine",      color: "#E74C3C" },
+  cafe:       { label: "☕ Cafe",         color: "#CDA077" },
+  pokemon:    { label: "⚡ Pokémon",     color: "#FFD700" },
+  market:     { label: "🏪 Market",      color: "#1ABC9C" },
+  bar:        { label: "🍺 Bar",          color: "#85C1E9" },
+  onsen:      { label: "♨️ Onsen",       color: "#EB6FA8" },
+  anime:      { label: "🎌 Anime/Manga", color: "#FF9FF3" },
+  climbing:   { label: "🧗 Climbing",   color: "#A8E6CF" },
+  shopping:   { label: "🛍️ Shopping",   color: "#FFEAA7" },
+};
+
+// ─────────────────────────────────────────────────────────────
+//  ALL LOCATIONS
+// ─────────────────────────────────────────────────────────────
+const ALL_LOCS = [
+
+  // ════════════════ OSAKA ════════════════
+
+  { name:"Harukas 300 Observatory", address:"Abeno Harukas, Osaka",
+    coords:[34.6462,135.5131], cat:"attraction", city:"osaka",
+    note:"Take a shit or piss on top floor lol",
+    guide:"Japan's tallest skyscraper (300m). Floors 58–60 are the observation deck with stunning 360° views over Osaka, Nara, and Kyoto. The express elevator from B2F shoots you up in seconds. ¥1,500 entry. Great at sunset. Also has a hotel and Kintetsu dept store inside." },
+
+  { name:"Dotonbori Market", address:"1 Chome Dotonbori, Chuo Ward, Osaka",
+    coords:[34.6687,135.5014], cat:"food", city:"osaka",
+    note:"Cool market",
+    guide:"The soul of Osaka food culture. The canal strip is lined with iconic neon signs — Glico man, Kani Doraku crab — plus street stalls serving takoyaki, kushikatsu, and fresh seafood. Hit Kinryu Ramen (24hr) after a night out, or explore the covered Shinsaibashi shopping arcade nearby. Best after dark." },
+
+  { name:"Umeda Food Spot (Kita Ward)", address:"Komatsubaracho 1-27, Kita Ward, Osaka",
+    coords:[34.7022,135.4972], cat:"food", city:"osaka",
+    note:"",
+    guide:"Tucked in the Umeda business district. Great spot for lunch or an izakaya dinner before or after exploring Umeda shopping areas. The surrounding Kita Ward has excellent standing ramen bars and conveyor sushi too." },
+
+  { name:"C Labo Card Shop", address:"Nipponbashinishi 1-1-3 Animate Bldg 5F, Naniwa, Osaka",
+    coords:[34.6623,135.5024], cat:"cards", city:"osaka",
+    note:"Best card shop in Osaka",
+    guide:"Top-tier TCG shop on Osaka's Den Den Town (the Akihabara of Osaka). Located in the Animate building 5F. Strong stock of Japanese and English MTG, Pokémon, One Piece TCG. Prices are competitive. Den Den Town below is great for browsing manga, figures, and retro games." },
+
+  { name:"Hiki Shoten (Kibe)", address:"Nipponbashi 4-15-13 Asano Bldg 3F, Naniwa, Osaka",
+    coords:[34.6597,135.5063], cat:"cards", city:"osaka",
+    note:"Best card shop Osaka",
+    guide:"Known among locals as a great spot for vintage and specialty TCG cards. 3rd floor walkup with knowledgeable staff. Check for display cases with graded and rare cards. Den Den Town is just outside." },
+
+  { name:"GIRAFULL Ota Road", address:"Nanbasennichimae 13-13, Chuo Ward, Osaka",
+    coords:[34.6636,135.5016], cat:"cards", city:"osaka",
+    note:"Best card shop Osaka",
+    guide:"Located on Namba's busy commercial strip. GIRAFULL stocks a wide range of TCGs with a focus on display singles and sealed product. The building has multiple floors — check all of them. Great for browsing sealed Pokémon boxes." },
+
+  { name:"Card Shop Nipponbashi 4-14-1", address:"4 Chome-14-1 Nipponbashi, Naniwa, Osaka",
+    coords:[34.6602,135.5061], cat:"cards", city:"osaka",
+    note:"Best card shop Osaka",
+    guide:"Walk through Den Den Town — this stretch of Nipponbashi has multiple card shops within meters of each other. Check each one; prices and stock vary wildly. Great for Pokémon singles and Japanese exclusive sets." },
+
+  { name:"Card Shop Nipponbashi 3-8-16", address:"3 Chome-8-16 Nipponbashi, Naniwa, Osaka",
+    coords:[34.6608,135.5065], cat:"cards", city:"osaka",
+    note:"Best card shop Osaka",
+    guide:"Another solid Den Den Town card shop. Great for comparing prices on singles between multiple stores in the same street. Osaka's Den Den Town card shops often have better prices than Tokyo equivalents." },
+
+  { name:"Magi Namba", address:"Namba 3-8-9 Namba Marui 5F, Chuo Ward, Osaka",
+    coords:[34.6669,135.5007], cat:"cards", city:"osaka",
+    note:"Best card shop Osaka",
+    guide:"Magi is a well-known chain with a consistent stock of card games, board games, and TCG accessories. Located inside Namba Marui mall. Great for sealed product and accessories like sleeves and deck boxes." },
+
+  { name:"Bee Card Shop", address:"Nanbanaka 2-1-20 Miyata Namba Bldg, Naniwa, Osaka",
+    coords:[34.6652,135.5002], cat:"cards", city:"osaka",
+    note:"Best card shop Osaka",
+    guide:"Bee is a buyer/seller focused shop — great for selling cards you've pulled and buying specific singles at fair prices. Staff often speak enough English for simple transactions." },
+
+  { name:"Bar Unknown", address:"Nanbanaka 2-7-7 Namba FK Bldg 2F, Naniwa, Osaka",
+    coords:[34.6648,135.5005], cat:"bar", city:"osaka",
+    note:"Bar Unknown",
+    guide:"A hidden 2nd floor bar in Namba. The kind of place you'd walk past 10 times without noticing. Great for post-card-shop drinks with a mysterious name that sets the vibe. Namba nightlife is all around — easily turn this into a full night out." },
+
+  { name:"Thrift Shopping Nishishinsaibashi", address:"2 Chome Nishishinsaibashi, Chuo Ward, Osaka",
+    coords:[34.6726,135.5026], cat:"fashion", city:"osaka",
+    note:"Thrift shopping in Osaka",
+    guide:"The America-Mura (American Village) area in Nishishinsaibashi is the epicenter of Osaka vintage and thrift. Multiple floors of second-hand streetwear, denim, and Japanese fashion. Triangle Park is the center — radiate outward. Better prices than Tokyo, more laid-back vibe." },
+
+  { name:"Glass Shop Nishitenma", address:"4 Chome-7 Nishitenma, Kita Ward, Osaka",
+    coords:[34.6958,135.5081], cat:"shopping", city:"osaka",
+    note:"",
+    guide:"Specialty glass shop in the upscale Nishitenma district. The area north of Osaka's Namba is quieter and more refined — great for gallery-browsing and design shops. Look for handblown glass and Japanese craft pieces." },
+
+  { name:"Osaka Aquarium Kaiyukan", address:"1-1-10 Kaigandori, Minato Ward, Osaka",
+    coords:[34.6549,135.4289], cat:"attraction", city:"osaka",
+    note:"",
+    guide:"One of the world's largest aquariums, centered around a massive Pacific Ocean tank. Home to whale sharks — a rarity in captivity. The spiral walkway takes you through 14 interconnected tanks representing Pacific ecosystems. Budget 2–3 hours. Combine with the nearby Tempozan Ferris Wheel for sunset views." },
+
+  { name:"Handsman Everything Store", address:"4 Chome-1139 Shindo, Matsubara, Osaka",
+    coords:[34.5741,135.5562], cat:"shopping", city:"osaka",
+    note:"Everything store",
+    guide:"A legendary Japanese home & everything megastore — think a massive hardware, craft, garden, and lifestyle store all in one. Beloved by DIYers, home cooks, and anyone who loves browsing random amazing products. Worth the trip south of the city center. Bring luggage." },
+
+  { name:"Private Onsen Higashishinsaibashi", address:"Higashishinsaibashi 1-15-15, Chuo Ward, Osaka",
+    coords:[34.6721,135.5063], cat:"onsen", city:"osaka",
+    note:"Private onsen in Osaka",
+    guide:"Book a private (rent-a-room) onsen bath in central Osaka. These spots let you soak in natural hot spring water with no strangers — perfect solo or with friends. Towels usually included. Reserve in advance online. Typical 1hr session for 2 people is ¥3,000–¥5,000." },
+
+  { name:"Mino Falls", address:"2-2 Minookoen, Minoh, Osaka",
+    coords:[34.8290,135.4706], cat:"attraction", city:"osaka",
+    note:"",
+    guide:"A 33m waterfall at the end of a scenic 3km forest trail through Minoh Quasi-National Park. The hike takes ~45 min each way — look for monkeys along the path. Famous for autumn foliage (late Nov). At the trailhead town, try momiji (maple leaf) tempura — a local oddity that actually tastes good." },
+
+  { name:"Katsuoji Temple", address:"2914-1 Aomatani, Minoh, Osaka",
+    coords:[34.8523,135.4738], cat:"shrine", city:"osaka",
+    note:"",
+    guide:"A gorgeous hilltop temple famous for its hundreds of red Daruma dolls covering every surface — steps, ledges, rock formations. It's known as the 'Temple of Winning' and is especially lively before exam season. Combine with Mino Falls for a full day in Minoh." },
+
+  { name:"Round One Umeda", address:"4-16 Komatsubaracho, Kita Ward, Osaka",
+    coords:[34.7021,135.4980], cat:"attraction", city:"osaka",
+    note:"",
+    guide:"Multi-floor entertainment center with bowling, batting cages, arcade games, billiards, karaoke, and more. Round One locations are massive — easily lose 4+ hours here. The arcades have prize machines (UFO catchers), Taiko no Tatsujin drums, and rhythm games unavailable in the West." },
+
+  { name:"One Piece Shop Abeno", address:"Abenosuji 1-6-1 Abenoques Mall 3F, Abeno, Osaka",
+    coords:[34.6460,135.5128], cat:"anime", city:"osaka",
+    note:"",
+    guide:"Official One Piece themed merchandise shop inside the Abeno Queez Mall near Harukas. Figures, clothes, accessories, and exclusive Osaka collab items. Stock updates regularly. While here, ride to the top of Harukas 300 for the views." },
+
+  { name:"B-Side Label Shinsaibashisuji", address:"2 Chome Shinsaibashisuji, Chuo Ward, Osaka",
+    coords:[34.6743,135.5024], cat:"shopping", city:"osaka",
+    note:"",
+    guide:"B-Side Label is Japan's best sticker brand — high-quality vinyl stickers with bold graphic art, Tokyo/Japan culture, and pop-art imagery. Great for decorating gear, skateboards, or notebooks. Prices are reasonable (¥500–¥1,500 each). Collect different designs from each city's store." },
+
+  { name:"Pokémon Center Osaka (Daimaru Umeda)", address:"Umeda 3-1-1 Daimaru 13F, Kita Ward, Osaka",
+    coords:[34.7024,135.4983], cat:"pokemon", city:"osaka",
+    note:"",
+    guide:"The official Osaka Pokémon Center inside Daimaru Umeda department store on the 13th floor. Exclusive Osaka-themed merchandise (Slowpoke with takoyaki, Snorlax with okonomiyaki). Get there early — exclusives sell out. The department store itself is excellent for Japanese beauty, food, and fashion." },
+
+  { name:"Retro Japan / Den Den Town", address:"Naniwa Ward, Osaka 556-0002",
+    coords:[34.6655,135.5038], cat:"market", city:"osaka",
+    note:"Retro Japan area",
+    guide:"The retro heart of Den Den Town — packed with vintage game shops, retro console dealers, and old manga. Super Potato is the best stop for retro gaming. Look for shops selling Famicom cartridges, old arcade boards, and classic anime goods at surprisingly low prices." },
+
+  // ════════════════ TOKYO — FOOD ════════════════
+
+  { name:"Carbonara Udon", address:"Jingumae 6-13-7 1F, Shibuya, Tokyo",
+    coords:[35.6638,139.7030], cat:"food", city:"tokyo",
+    note:"Carbonara udon",
+    guide:"Innovative udon fusion in Harajuku. Carbonara udon — thick udon noodles in a rich egg yolk and pancetta sauce — is one of those beautiful Japan-only mashups that just works. Small counter-style restaurant, may have a short wait. Near Meiji Shrine for a temple → lunch combo." },
+
+  { name:"Ginza Food Spot (4-13-3)", address:"4 Chome-13-3 Ginza, Chuo, Tokyo",
+    coords:[34.6716,139.7648], cat:"food", city:"tokyo",
+    note:"Recommended food",
+    guide:"Ginza is full of hidden lunch gems offering quality kaiseki-style sets at reasonable prices. The 4-chome area has countless restaurants across multiple floors in each building. Walk around and check the plastic food displays — if the plastic food looks amazing, go in." },
+
+  { name:"Food Spot Tomioka", address:"Tomioka 1-14-14 Waraku Bldg 1F, Koto, Tokyo",
+    coords:[35.6757,139.8074], cat:"food", city:"tokyo",
+    note:"Recommended food",
+    guide:"Near Tomioka Hachimangu shrine and the Fukagawa neighborhood — one of Tokyo's most atmospheric old-town areas. Great for lunch before exploring the shrine and nearby Monzen-nakacho shotengai (shopping street)." },
+
+  { name:"Food Spot Monzennakacho", address:"1 Chome-12-5 Monzennakacho, Koto, Tokyo",
+    coords:[35.6716,139.8003], cat:"food", city:"tokyo",
+    note:"Recommended food",
+    guide:"Monzennakacho ('Mon-naka') is a beloved old neighborhood with excellent izakayas and ramen along the main shrine street. Very local, less touristy than other areas. Try standing-drink bars along the main shotengai." },
+
+  { name:"Viral Flan Cafe (Old Guy)", address:"Nishishinbashi 1-20-11 Ando Bldg 1F, Minato, Tokyo",
+    coords:[35.6668,139.7516], cat:"cafe", city:"tokyo",
+    note:"Viral flan cafe old guy",
+    guide:"The cafe famous for its one-man operation — an elderly Japanese man who has perfected his handmade purin (flan) recipe over decades. Incredibly rich, silky custard with dark caramel sauce. Has gone viral for the owner's dedication and craft. Get there early — it sells out. Cash only." },
+
+  { name:"Good Ramen (Jingumae 6-9-14)", address:"6 Chome-9-14 Jingumae, Shibuya, Tokyo",
+    coords:[35.6633,139.7024], cat:"food", city:"tokyo",
+    note:"Good ramen",
+    guide:"A recommended ramen spot in the Jingumae/Harajuku area. Tokyo ramen varies wildly by shop — look for shops with queues during lunch (a good sign). Harajuku-area ramen tends toward lighter shio or shoyu styles. Don't skip the seasoned soft-boiled egg (ajitama)." },
+
+  { name:"Buffet (Ginza B1)", address:"8 Chome-10 Ginza, Chuo, Tokyo",
+    coords:[35.6691,139.7589], cat:"food", city:"tokyo",
+    note:"Buffet",
+    guide:"Basement-level buffet in Ginza. Japan's all-you-can-eat (tabehoudai) buffets are a league above the Western equivalent — often featuring Japanese, Chinese, and Western dishes with fresh quality ingredients. Ginza buffets tend to skew upscale. Check the menu board outside before entering." },
+
+  { name:"Wide Noodle Udon", address:"3 Chome-14-13 Ginza, Chuo, Tokyo",
+    coords:[35.6709,139.7647], cat:"food", city:"tokyo",
+    note:"Wide noodle udon",
+    guide:"Hitsumabushi-style wide udon — flat, wide noodles served with various toppings. A Ginza gem away from the obvious tourist spots. The combination of chewy wide udon with a rich dashi broth is hard to forget." },
+
+  // ════════════════ TOKYO — BOOKS / SECOND-HAND ════════════════
+
+  { name:"Book Off — Nakakasai", address:"4-4-8 Nakakasai, Edogawa, Tokyo",
+    coords:[35.6821,139.8681], cat:"bookshop", city:"tokyo",
+    note:"Book Off",
+    guide:"Book Off is Japan's largest second-hand book/media chain. You can find manga volumes for ¥110, used CDs, DVDs, video games, and more. The system is consistent across all branches. This eastern Tokyo branch is less picked-over than central locations." },
+
+  { name:"Book Off — Kanda Sakumacho", address:"1 Chome-6-4 Kanda Sakumacho, Chiyoda, Tokyo",
+    coords:[35.6985,139.7748], cat:"bookshop", city:"tokyo",
+    note:"Book Off",
+    guide:"Centrally located Book Off near Akihabara. Great location to pair with Akihabara electronics and card shopping. This area is a book/media paradise — multiple floors of ¥110 manga, games, and CDs. Check the ¥110 bins methodically." },
+
+  { name:"Book Off — Ueno (4-4-4)", address:"4 Chome-4-4 Ueno, Taito, Tokyo",
+    coords:[35.7155,139.7768], cat:"bookshop", city:"tokyo",
+    note:"Book Off",
+    guide:"One of several Book Offs near Ueno Park. Ueno is excellent for second-hand media due to the high density of shops. Stack it with Hard Off and Mode Off visits for a full retro-media day. Check the manga section for complete series at ¥110/volume." },
+
+  { name:"Book Off — Higashiikebukuro", address:"Higashiikebukuro 1-22-10, Toshima, Tokyo",
+    coords:[35.7290,139.7185], cat:"bookshop", city:"tokyo",
+    note:"Book Off",
+    guide:"Large Book Off near the Sunshine City shopping center in Ikebukuro. Ikebukuro is Tokyo's other major otaku district — great for anime goods and manga. The Book Off here often has good stock of current series alongside the ¥110 clearance bins." },
+
+  { name:"Book Off — Shinjuku (5-2-1)", address:"5 Chome-2-1 Shinjuku, Shinjuku, Tokyo",
+    coords:[35.6900,139.6988], cat:"bookshop", city:"tokyo",
+    note:"Book Off",
+    guide:"Shinjuku Book Off close to the busy Kabukicho and Golden Gai entertainment districts. Pair a daytime Book Off run with evening Golden Gai bar hopping. Shinjuku has multiple Book Offs — check floors carefully." },
+
+  { name:"Book Off — Matsugaya", address:"1 Chome-3-5 Matsugaya, Taito, Tokyo",
+    coords:[35.7080,139.7818], cat:"bookshop", city:"tokyo",
+    note:"Book Off",
+    guide:"Near Kappabashi kitchen supply street — combine a Book Off run with browsing the amazing knife shops and kitchenware of Kappabashi. Good stock of Japanese cookbooks if that's your thing." },
+
+  { name:"Book Off — Nishishinjuku", address:"Nishishinjuku 1-10-2, Shinjuku, Tokyo",
+    coords:[35.6930,139.6968], cat:"bookshop", city:"tokyo",
+    note:"Book Off",
+    guide:"West-side Shinjuku Book Off — quieter side of the station, less tourist foot traffic. Can be a good place to find less picked-over stock. Near camera shops and electronics stores in Nishi-Shinjuku." },
+
+  { name:"Book Off — Kawasaki", address:"Ekimae Honcho 7, Kawasaki, Kanagawa",
+    coords:[35.5308,139.6992], cat:"bookshop", city:"other",
+    note:"Book Off (Kawasaki)",
+    guide:"Kawasaki station area Book Off. Worth a stop if you're traveling between Tokyo and Yokohama. Kawasaki has a vibrant entertainment and food scene — try the Kawasaki Azalea and La Ciudat shopping centers nearby." },
+
+  { name:"Book Off — Nishigotanda", address:"Nishigotanda 2-29-5 7F, Shinagawa, Tokyo",
+    coords:[35.6230,139.7255], cat:"bookshop", city:"tokyo",
+    note:"Book Off",
+    guide:"7th floor Book Off in Gotanda — this area is more residential/commercial than tourist, so expect less-picked stock. Good for manga series hunting. Gotanda has surprisingly good izakayas and food options nearby." },
+
+  { name:"Book Off — Kinshicho", address:"Kinshi 4-6-1 Lotte City 3F, Sumida, Tokyo",
+    coords:[35.6972,139.8102], cat:"bookshop", city:"tokyo",
+    note:"Book Off",
+    guide:"Inside Lotte City mall near Kinshicho station. Kinshicho is a lively working-class neighborhood with great Korean BBQ spots and an active shotengai shopping street. The Book Off is on 3F of the mall — easy to miss, worth finding." },
+
+  { name:"Book Off — Minamioi", address:"Minamioi 6-27-25 Seiyu Omori 3F, Shinagawa, Tokyo",
+    coords:[35.5993,139.7340], cat:"bookshop", city:"tokyo",
+    note:"Book Off",
+    guide:"Inside a Seiyu supermarket complex in south Tokyo. Less central but useful if you're in the area. Good for manga volumes and used games. The surrounding Omori area has some excellent old-school ramen shops." },
+
+  // ════════════════ TOKYO — HARD OFF / MODE OFF ════════════════
+
+  { name:"Hard Off — Sotokanda (Rock Bldg)", address:"Sotokanda 3-11-2 Rock Building 2F/3F B1, Chiyoda, Tokyo",
+    coords:[35.7027,139.7726], cat:"market", city:"tokyo",
+    note:"Hard Off",
+    guide:"Hard Off is the electronics/instrument/gear arm of the Book Off family. This Akihabara location is excellent for vintage audio gear, cameras, musical instruments, and electronics at serious discounts. The Junk section (broken/as-is items) is legendary among hobbyists. Check all floors carefully." },
+
+  { name:"Hard Off — Ueno (4-6-6)", address:"4 Chome-6-6 Ueno, Taito, Tokyo",
+    coords:[35.7151,139.7768], cat:"market", city:"tokyo",
+    note:"Hard Off",
+    guide:"Ueno Hard Off stacked with vintage cameras, audio equipment, and all types of second-hand electronics. Close to Ameyoko market — combine for a full Ueno browsing day. The ¥110 junk bins are worth digging through if you're a tinkerer." },
+
+  { name:"Mode Off — Ueno (4-2-3)", address:"4 Chome-2-3 Ueno, Taito, Tokyo",
+    coords:[35.7148,139.7762], cat:"fashion", city:"tokyo",
+    note:"Mode Off",
+    guide:"Mode Off is the fashion/clothing arm of the Off family. Sells branded second-hand clothing at discounted prices. Japan's second-hand fashion market is exceptional — you'll find barely-worn brand items for a fraction of retail. Great for Uniqlo, Beams, Comme des Garçons, and more." },
+
+  { name:"Mode Off — Koenji (Koenjikita)", address:"2 Chome-7-6 Koenjikita, Suginami, Tokyo",
+    coords:[35.7051,139.6491], cat:"fashion", city:"tokyo",
+    note:"Mode Off",
+    guide:"Koenji is Tokyo's vintage/alternative fashion hub and this Mode Off sits right in the heart of it. Koenji has an incredible density of independent vintage shops along the south exit shotengai — walk the entire street. Think 1960s-1990s Japanese and American vintage alongside Mode Off's branded stock." },
+
+  // ════════════════ TOKYO — CARD/GAMING ════════════════
+
+  { name:"Bring Your Game Card Bar Ueno", address:"Ueno 5-23-8 Yaegaki Bldg B1F, Taito, Tokyo",
+    coords:[35.7118,139.7763], cat:"cards", city:"tokyo",
+    note:"",
+    guide:"Basement card game bar where you can order drinks and play card games simultaneously. Bring your own decks or rent from the bar's collection. An amazing concept — half bar, half game store. Popular with after-work office players. Draft events often happen on weekends." },
+
+  { name:"TCG Free Packs — Sotokanda", address:"Sotokanda 3-16-10 New Center Bldg 1F, Chiyoda, Tokyo",
+    coords:[35.7026,139.7751], cat:"cards", city:"tokyo",
+    note:"TCG shop giving free packs/cards",
+    guide:"This Akihabara shop reportedly gives out free promotional packs or cards with purchases. In Japan, card shops often run promotional campaigns where you receive bonus packs when spending a certain amount. Check what's currently on offer when you visit." },
+
+  { name:"TCG Free Packs — Shibuya", address:"Shibuya 2-22-7 Kyoei Bldg 4F, Shibuya, Tokyo",
+    coords:[35.6619,139.7029], cat:"cards", city:"tokyo",
+    note:"TCG shop giving free packs/cards",
+    guide:"4th floor Shibuya card shop known for promotional giveaways. Shibuya is an unexpected spot for a card shop but great for combining with a full day of eating and shopping. Check the floor directory carefully — small shops in Japanese buildings are often unmarked from outside." },
+
+  { name:"Card Shop — Mikasa Bldg (Sotokanda)", address:"Sotokanda 1-2-5 Mikasa Bldg, Chiyoda, Tokyo",
+    coords:[35.7021,139.7740], cat:"cards", city:"tokyo",
+    note:"Best card shop Tokyo",
+    guide:"One of Akihabara's best-regarded card shops for TCG singles and sealed product. The Mikasa Building is a multi-tenant building filled with anime and gaming related shops — explore the whole building. Great prices on Pokemon and One Piece singles." },
+
+  { name:"Card Shop — Sotokanda 3-15-6 (9F)", address:"Sotokanda 3-15-6 9F, Chiyoda, Tokyo",
+    coords:[35.7025,139.7748], cat:"cards", city:"tokyo",
+    note:"Best card shop Tokyo",
+    guide:"9th floor card shop in Akihabara. Getting to the 9th floor is part of the fun — these high-floor Akihabara shops often have better prices and less tourist markup. Bring cash; smaller specialty shops often don't take foreign cards." },
+
+  { name:"Card Shop — Suehiro JF Bldg", address:"Sotokanda 5-1-5 Suehiro JF Bldg, Chiyoda, Tokyo",
+    coords:[35.7005,139.7744], cat:"cards", city:"tokyo",
+    note:"Best card shop Tokyo",
+    guide:"Suehiro building card shop in southern Akihabara — one of multiple shops in this building. The southern end of Akihabara's Chuo-dori has a slightly different vibe from the main strip. Good for browsing sealed boxes and specialty Japanese-release sets." },
+
+  // ════════════════ TOKYO — FASHION / SHOPPING ════════════════
+
+  { name:"HISEKI Ring Shop — Harajuku", address:"Jingumae 1-15-1 Via 104, Shibuya, Tokyo",
+    coords:[35.6694,139.7053], cat:"shopping", city:"tokyo",
+    note:"Ring shop",
+    guide:"Handcrafted jewelry shop in Harajuku's Via building. Known for beautiful ring designs with a Japanese artisan sensibility — think clean geometric forms and natural materials. Harajuku has many small jewelry ateliers; this is one of the best. Custom sizing often available." },
+
+  { name:"B-Side Label — Harajuku", address:"Jingumae 4-25-6 B1-B, Shibuya, Tokyo",
+    coords:[35.6695,139.7066], cat:"shopping", city:"tokyo",
+    note:"Sticker store",
+    guide:"The flagship-ish B-Side Label Tokyo store in basement Harajuku. Their vinyl stickers are iconic in Japanese street culture — bold, graphic, durable. Perfect gifts and souvenirs. Collect city-specific designs between this and the Osaka/Kyoto locations." },
+
+  { name:"B-Side Label — Shimokitazawa", address:"Kitazawa 2-36-2 Hills Shimokitazawa 1F, Setagaya, Tokyo",
+    coords:[35.6618,139.6680], cat:"shopping", city:"tokyo",
+    note:"Sticker store",
+    guide:"B-Side Label outpost in Shimokitazawa — Tokyo's vintage/indie/music neighborhood. Shimokitazawa is worth a full half-day: vintage shops, live music venues, coffee, and this sticker store. The neighborhood has a completely different energy from central Tokyo." },
+
+  { name:"LOFT Shibuya", address:"21-1 Udagawacho, Shibuya, Tokyo",
+    coords:[35.6609,139.6983], cat:"shopping", city:"tokyo",
+    note:"",
+    guide:"LOFT is Japan's definitive lifestyle goods store — stationery, design items, cooking tools, health goods, and seasonal items across multiple floors. The Shibuya flagship is huge. An excellent source of gifts and souvenirs beyond the typical tourist fare. The stationery and craft section alone is worth a visit." },
+
+  { name:"Camera Shop — Nishi-Shinjuku", address:"1-13-7 Nishi-Shinjuku, Shinjuku, Tokyo",
+    coords:[35.6921,139.6940], cat:"shopping", city:"tokyo",
+    note:"Camera shop",
+    guide:"Nishi-Shinjuku is home to multiple camera shops including Map Camera and Shinjuku Chuko Camera. This area is Japan's best for buying used film and digital cameras at competitive prices. Expect well-graded second-hand cameras with Japanese quality standards — condition grades are reliable." },
+
+  { name:"Kitchen Supply Town (Kappabashi)", address:"3 Chome-18-2 Matsugaya, Taito, Tokyo",
+    coords:[35.7075,139.7819], cat:"market", city:"tokyo",
+    note:"Kitchen supply town / souvenir street",
+    guide:"Kappabashi Dougu-gai (Kitchen Town) — a 800m street of kitchen supply shops selling everything from professional knives to plastic food displays to ramen bowls. Chefs worldwide come to shop here. The best souvenirs: Japanese kitchen knives (get engraved nearby!), chopsticks, and ceramic dishes. The plastic food (sampuru) shops are wild." },
+
+  { name:"Ghibli Store — Aomi (DiverCity)", address:"Aomi 1-1-10 5F, Koto, Tokyo",
+    coords:[35.6235,139.7779], cat:"anime", city:"tokyo",
+    note:"",
+    guide:"Official Studio Ghibli merchandise store in DiverCity Tokyo on Odaiba. Totoro, Spirited Away, Howl's Moving Castle — full range of official goods. Odaiba is a great afternoon destination on its own: teamLab digital art museum, Gundam statue, Fuji TV building, and this store make a solid day." },
+
+  { name:"MoN Takanawa", address:"3 Chome-16-1 Mita, Minato, Tokyo",
+    coords:[35.6452,139.7433], cat:"attraction", city:"tokyo",
+    note:"",
+    guide:"Museum of Naze (MoN) in Takanawa — a unique interactive curiosity museum in the quieter Takanawa/Mita area. Minato Ward is great for upscale dining and architecture walks. Nearby Shirokanedai has excellent cafes and the Institute for Nature Study." },
+
+  { name:"Cheap Anime Store — Sotokanda (5-1-15)", address:"Sotokanda 5-1-15 Hakuto Bldg 1F, Chiyoda, Tokyo",
+    coords:[35.7005,139.7744], cat:"anime", city:"tokyo",
+    note:"Cheap anime store",
+    guide:"Budget anime merch store in Akihabara. Great for ¥100–¥500 clearance figures, keychains, and character goods. These shops cycle through stock quickly — what's there today won't be tomorrow. Perfect for affordable anime souvenirs and random finds." },
+
+  { name:"Cheap Anime Store — Sotokanda (1-10-2)", address:"Sotokanda 1-10-2 Space K, Chiyoda, Tokyo",
+    coords:[35.7020,139.7740], cat:"anime", city:"tokyo",
+    note:"Cheap anime store",
+    guide:"Another Akihabara bargain anime shop. Space K / similar budget stores carry overstock and clearance items from major anime series. Great for large quantities of small items at low prices — perfect for gift shopping." },
+
+  // ════════════════ TOKYO — ONITSUKA TIGER ════════════════
+
+  { name:"Onitsuka Tiger — Yaesu", address:"Yaesu 2-2-1 Tokyo Midtown Yaesu 1F, Chuo, Tokyo",
+    coords:[35.6803,139.7682], cat:"fashion", city:"tokyo",
+    note:"Onitsuka Tiger",
+    guide:"Onitsuka Tiger flagship in Tokyo Midtown Yaesu, connected to Tokyo Station. Japan exclusives and collaborative colorways unavailable outside Japan. The staff will help you find sizes — Japanese sizing runs smaller. Stock up here; prices are similar to retail but the selection is incomparable." },
+
+  { name:"Onitsuka Tiger — Marunouchi", address:"Marunouchi 2-7-2 JP Tower Kitte 3F, Chiyoda, Tokyo",
+    coords:[35.6801,139.7660], cat:"fashion", city:"tokyo",
+    note:"Onitsuka Tiger",
+    guide:"Inside JP Tower KITTE mall, attached to Tokyo Station. KITTE has excellent shopping across all floors plus free rooftop garden views of the station. The Onitsuka store here usually carries some exclusives you won't find at the Yaesu location." },
+
+  { name:"Onitsuka Tiger — Roppongi Hills", address:"Roppongi 6-4-1 Hills Metro Hat B1F, Minato, Tokyo",
+    coords:[35.6621,139.7299], cat:"fashion", city:"tokyo",
+    note:"Onitsuka Tiger",
+    guide:"Located in the labyrinthine Roppongi Hills complex, basement level. Roppongi Hills itself is worth exploring — Mori Art Museum (53F), the observation deck, and countless restaurants. The Onitsuka store has a slightly different selection from the Marunouchi locations." },
+
+  { name:"Onitsuka Tiger — Shibuya Jinnan", address:"Jinnan 1-21-3, Shibuya, Tokyo",
+    coords:[35.6610,139.6995], cat:"fashion", city:"tokyo",
+    note:"Onitsuka Tiger",
+    guide:"On the Jinnan side of Shibuya — quieter, more elevated than the Scramble Crossing chaos. This neighborhood (toward Yoyogi Park) has excellent independent shops, cafes, and this Onitsuka store. Good place to cool off from Shibuya's main drag." },
+
+  { name:"Onitsuka Tiger — Harajuku (Jingumae)", address:"4 Chome-24-14 Jingumae, Shibuya, Tokyo",
+    coords:[35.6680,139.7042], cat:"fashion", city:"tokyo",
+    note:"Onitsuka Tiger",
+    guide:"On Harajuku's famous Takeshita-dori adjacent area. After visiting this store, walk through Takeshita-dori for pure Japanese youth culture chaos, then up to Omotesando for the upscale version. Onitsuka's Harajuku store often has streetwear-adjacent limited colorways." },
+
+  { name:"Onitsuka Tiger — Shinjuku (4-1-4)", address:"Shinjuku 4-1-4 3rd Sky Bldg, Shinjuku, Tokyo",
+    coords:[35.6923,139.7022], cat:"fashion", city:"tokyo",
+    note:"Onitsuka Tiger",
+    guide:"East-exit Shinjuku location. Easy to access from the station. Shinjuku's shopping is dense — this is the starting point to also hit the Lumine Est location a few blocks away. The Shinjuku stores tend to carry the latest colorways." },
+
+  // ════════════════ TOKYO — ATTRACTIONS / ENTERTAINMENT ════════════════
+
+  { name:"Golden Gai", address:"Kabukicho 1-1-6, Shinjuku, Tokyo",
+    coords:[35.6942,139.7030], cat:"bar", city:"tokyo",
+    note:"Bar street",
+    guide:"Golden Gai is an impossibly narrow network of 6 alleyways housing ~200 tiny bars, each fitting only 5–8 people. Each bar has a distinct theme — jazz, horror movies, rock, cats. You'll be charged a ¥500–¥1,000 cover (seating charge) at most spots. Don't be shy about ducking your head into any door. Most welcome foreigners. Best after 9PM." },
+
+  { name:"Cat Street (Yanaka)", address:"3 Chome-13-1 Yanaka, Taito, Tokyo",
+    coords:[35.7270,139.7715], cat:"attraction", city:"tokyo",
+    note:"Cat street",
+    guide:"Yanaka is the most atmospheric old-Tokyo neighborhood — a preserved shotengai (shopping street) that feels like the 1960s. Narrow alleys, independent shops, old temples, and actual stray cats. The Yanaka Cemetery is stunning. Buy handmade crafts, sembei (rice crackers), and meow cat figurines. A must-visit for Tokyo authenticity." },
+
+  { name:"Singing Otters — Shinagawa Prince Hotel", address:"Takanawa 4-10-30, Minato, Tokyo",
+    coords:[35.6334,139.7384], cat:"attraction", city:"tokyo",
+    note:"Singing otters",
+    guide:"The Shinagawa Prince Hotel aquarium (EpiX) features trained otters who apparently put on performances. A surprisingly touching, quirky Tokyo experience. The complex also has an IMAX cinema and multiple restaurants. Shinagawa itself is a major transport hub — easy access from Haneda and south Tokyo." },
+
+  { name:"Cool Bar Ebisu (1F)", address:"Ebisunishi 1-12-11 Bios Bldg 1F, Shibuya, Tokyo",
+    coords:[35.6484,139.7108], cat:"bar", city:"tokyo",
+    note:"Cool bar",
+    guide:"Stylish bar in the Ebisu/Daikanyama area — one of Tokyo's most sophisticated neighborhoods. West Ebisu is full of creative industry types and design-forward nightlife. The 1F bar in this building sets the tone. Walk down to Daikanyama T-Site (Tsutaya bookstore/design complex) before or after." },
+
+  { name:"Cool Bar Ebisu (B1)", address:"Ebisunishi 1-12-11 Bios Bldg B1F, Shibuya, Tokyo",
+    coords:[35.6483,139.7107], cat:"bar", city:"tokyo",
+    note:"Cool bar (basement)",
+    guide:"The basement level of the same Bios Building as the 1F bar — reportedly a different bar with a different vibe. Having two solid bars in the same building is peak Tokyo efficiency. The Ebisu/Daikanyama area is one of the best for a relaxed evening out." },
+
+  { name:"Climbing Gym — Yushima", address:"1 Chome-1-8 Yushima, Bunkyo, Tokyo",
+    coords:[35.7073,139.7700], cat:"climbing", city:"tokyo",
+    note:"Climbing gym",
+    guide:"Bouldering gym in the Yushima/Ueno area. Japanese climbing gyms are famously high-quality — excellent setting, clean facilities, and friendly community. Day passes are usually ¥1,500–¥2,000. Shoe rentals available. Great way to break up sightseeing." },
+
+  { name:"Climbing Gym — Ichigaya", address:"Ichigayadaimachi 14-6 Shinkawa Heights B1, Shinjuku, Tokyo",
+    coords:[35.6915,139.7296], cat:"climbing", city:"tokyo",
+    note:"Climbing gym",
+    guide:"Basement climbing gym near Ichigaya — conveniently between Shinjuku and Akihabara. Perfect for a mid-trip workout. The Ichigaya area also has Yasukuni Shrine and the Shinjuku Gyoen garden nearby." },
+
+  // ════════════════ TOKYO — PHOTO SPOTS ════════════════
+
+  { name:"Photo Spot — Sendagaya", address:"4 Chome-30-3 Sendagaya, Shibuya, Tokyo",
+    coords:[35.6787,139.7148], cat:"photo", city:"tokyo",
+    note:"Photo op",
+    guide:"Near the Tokyo Metropolitan Gymnasium and Yoyogi Park. This part of Sendagaya has a cool blend of modern architecture and traditional elements. The area around the Olympic stadium and Meiji Shrine outer gardens offers strong photo compositions." },
+
+  { name:"Photo Spot — Kanda Surugadai", address:"4 Chome Kanda Surugadai, Chiyoda, Tokyo",
+    coords:[35.6983,139.7617], cat:"photo", city:"tokyo",
+    note:"Photo op",
+    guide:"The Kanda area has beautiful Meiji-era Western-influenced architecture mixed with dense urban Tokyo. The slope up to Surugadai gives views of the skyline. Nearby Akihabara and the Kanda bookshop street (Jimbocho) are within walking distance." },
+
+  { name:"Photo Spot — Nagasaki, Toshima", address:"1 Chome-2-1 Nagasaki, Toshima, Tokyo",
+    coords:[35.7254,139.6981], cat:"photo", city:"tokyo",
+    note:"Photo op",
+    guide:"Quiet residential Toshima ward area with atmospheric back streets. Less-photographed Tokyo — feels genuinely lived-in. Good for street photography of everyday Tokyo life, small temples, and traditional shotengai shops." },
+
+  { name:"Photo Spot — Shibuya Sky", address:"2-24-12 Shibuya, Shibuya, Tokyo",
+    coords:[35.6580,139.7016], cat:"photo", city:"tokyo",
+    note:"Photo op",
+    guide:"Shibuya Sky observation deck atop Shibuya Scramble Square. One of Tokyo's best views, especially at night — the Scramble Crossing below looks like a perfect diagram. Advance booking recommended (sells out). ¥2,000 entry. Go at blue hour (30min before sunset) for the best light." },
+
+  { name:"Photo Spot — Roppongi Hills Mori Tower", address:"7 Chome-22-2 Roppongi, Minato, Tokyo",
+    coords:[35.6628,139.7314], cat:"photo", city:"tokyo",
+    note:"Photo op",
+    guide:"The Mori Art Museum (52F) doubles as a combined gallery and Tokyo City View observation deck. World-class contemporary art + panoramic Tokyo views in one ticket. Open until midnight — night views of Tokyo from 52F are extraordinary. The rooftop is called SKY DECK (extra charge) with open-air 360° views." },
+
+  { name:"Photo Spot — Nishi-Shinjuku", address:"7-12 Nishi-Shinjuku, Shinjuku, Tokyo",
+    coords:[35.6943,139.6919], cat:"photo", city:"tokyo",
+    note:"Photo op",
+    guide:"The west side of Shinjuku has Tokyo's most impressive skyscraper cluster. The free observation deck in the Tokyo Metropolitan Government Building (Tocho) is open until 10:30PM and offers free views rivaling paid alternatives. The skyscraper canyon at street level is dramatic in any lighting." },
+
+  { name:"Glass Building — Ginza", address:"Ginza 5-4-1 8F, Chuo, Tokyo",
+    coords:[35.6718,139.7647], cat:"attraction", city:"tokyo",
+    note:"",
+    guide:"Ginza's architectural standout — likely the Apple Store Ginza or a similarly striking glass-facade building. Ginza 5-chome is the most architecturally interesting block in the district, with buildings by world-famous architects. The Hermès building by Renzo Piano is nearby." },
+
+  // ════════════════ TOKYO — POKÉMON CENTERS ════════════════
+
+  { name:"Pokémon Center — Shibuya PARCO 6F", address:"Udagawacho 15-1 Shibuya PARCO 6F, Shibuya, Tokyo",
+    coords:[35.6609,139.6983], cat:"pokemon", city:"tokyo",
+    note:"",
+    guide:"Inside the redesigned Shibuya PARCO building. Also shares floors with Nintendo TOKYO (amazing for exclusives). PARCO has an incredible lineup of niche fashion, art, games, and food. The Pokémon Center here often has Tokyo-exclusive designs. Combine with Nintendo Tokyo on the same floor." },
+
+  { name:"Pokémon Center — Nihonbashi (Takashimaya)", address:"Nihonbashi 2-11-2 Takashimaya SC East 5F, Chuo, Tokyo",
+    coords:[35.6835,139.7742], cat:"pokemon", city:"tokyo",
+    note:"",
+    guide:"In the Nihonbashi Takashimaya department store. Nihonbashi is Tokyo's old commercial heart — great for Japanese traditional crafts and sweets in the surrounding shops. The Pokémon Center here is well-stocked and less crowded than Shibuya." },
+
+  { name:"Pokémon Center — Ikebukuro (Sunshine City)", address:"Higashiikebukuro 3-1-2 Sunshine City Alpa 2F, Toshima, Tokyo",
+    coords:[35.7296,139.7191], cat:"pokemon", city:"tokyo",
+    note:"",
+    guide:"In Sunshine City — a massive complex with an aquarium, observatory, and planetarium in addition to shopping. The Pokémon Center is on the Alpa mall 2F. Ikebukuro also has J-World (anime theme park), Animate (multi-floor anime shop), and excellent ramen nearby." },
+
+  { name:"Pokémon Center — Tokyo SkyTree (Solamachi 4F)", address:"Oshiage 1-1-2 Solamachi East Yard 4F, Sumida, Tokyo",
+    coords:[35.7101,139.8109], cat:"pokemon", city:"tokyo",
+    note:"",
+    guide:"In Solamachi mall at the base of Tokyo SkyTree (world's tallest tower). Exclusive SkyTree x Pokémon merchandise often available. The SkyTree observation deck ticket line is brutal — book online. The Solamachi mall has great food halls in the basement and excellent Japanese crafts." },
+
+  { name:"Pokémon Center — Funabashi (LaLaport)", address:"Hamacho 2-1-1 LaLaport Tokyo 2F, Funabashi, Chiba",
+    coords:[35.6940,139.9812], cat:"pokemon", city:"other",
+    note:"",
+    guide:"In LaLaport Tokyo Bay in Funabashi — a huge suburban mall. Worth combining with other Chiba destinations. LaLaport has an excellent food court and a range of stores beyond just the Pokémon Center." },
+
+  { name:"Pokémon Center — Okinawa (AEON Mall)", address:"Kitanakagusuku, Nakagami District, Okinawa",
+    coords:[26.3042,127.7881], cat:"pokemon", city:"other",
+    note:"",
+    guide:"The southernmost Pokémon Center in Japan, inside AEON Mall Okinawa Rycom. Exclusive Okinawa-themed Pokémon designs (tropical, beach-themed). Okinawa itself is a complete destination — beautiful beaches, unique Ryukyuan culture, and distinct local cuisine. The AEON mall is huge and a good base for exploring central Okinawa." },
+
+  // ════════════════ TOKYO — MARKETS / OTHER ════════════════
+
+  { name:"Tokyo City Flea Market", address:"2 Chome-1 Katsushima, Shinagawa, Tokyo",
+    coords:[35.5960,139.7370], cat:"market", city:"tokyo",
+    note:"Open Sat & Sunday",
+    guide:"One of Tokyo's biggest outdoor flea markets, open weekends. Hundreds of vendors selling vintage clothing, housewares, antiques, tools, and random treasure. Get there early for best selection. Cash only. Bring bags. The market runs rain-or-shine — sellers are serious regulars with quality merchandise." },
+
+  { name:"Oedo Antiques Market", address:"3 Chome-5 Marunouchi, Chiyoda, Tokyo",
+    coords:[35.6750,139.7634], cat:"market", city:"tokyo",
+    note:"Antiques market",
+    guide:"One of Japan's finest antique markets, held at the Tokyo International Forum in Marunouchi. Specializes in high-quality Japanese antiques: ceramics, lacquerware, textiles, furniture, and art. The building itself (designed by Rafael Viñoly) is architecturally stunning. Market is held on specific weekends — check dates before going." },
+
+  { name:"Night Walk — Sakuragaokacho", address:"1-1 Sakuragaokacho, Shibuya, Tokyo",
+    coords:[35.6571,139.7010], cat:"photo", city:"tokyo",
+    note:"Night walk",
+    guide:"Sakuragaokacho is Shibuya's most atmospheric street — a steep, winding hill lined with restaurants, bars, and the famous ivy-covered alley. Less chaotic than Shibuya proper. This is the area for post-dinner wandering. The slope up to the left of Shibuya station's south exit feels like a hidden Tokyo." },
+
+  { name:"Night Walk — Sendagaya Area", address:"5 Chome-24 Sendagaya, Shibuya, Tokyo",
+    coords:[35.6782,139.7138], cat:"photo", city:"tokyo",
+    note:"Night walk",
+    guide:"The Sendagaya / Harajuku backstreets between Meiji Jingu Stadium and Yoyogi Park are excellent for a quiet evening walk. The stadium lights at night are dramatic, and the surrounding residential lanes feel genuinely removed from tourist Tokyo." },
+
+  { name:"A-pit / Car Culture District", address:"Shinonome 2-7-20, Koto, Tokyo",
+    coords:[35.6601,139.8015], cat:"attraction", city:"tokyo",
+    note:"A-pit car shop + others",
+    guide:"The A-pit Autobacs store in Shinonome is Japan's most dramatic automotive accessories store — a showcase space for the famous Autobacs chain. If you're into Japanese car culture (bosozoku, stance, JDM), this area near the Odaiba waterfront is a pilgrimage site." },
+
+  { name:"One Piece Shop — Shibuya", address:"Jinnan 1-23-10, Shibuya, Tokyo",
+    coords:[35.6614,139.6989], cat:"anime", city:"tokyo",
+    note:"",
+    guide:"Official One Piece merchandise store near Shibuya. Themed exclusively to the manga/anime series with figures, clothing, keychains, and Shibuya-exclusive collab items. Great for fans — the range of official merchandise in Japan is incomparably wider than anywhere else." },
+
+  { name:"One Piece Shop — Tokyo Station", address:"Marunouchi 1-9-1 Tokyo Station Underground, Chiyoda, Tokyo",
+    coords:[35.6811,139.7671], cat:"anime", city:"tokyo",
+    note:"",
+    guide:"In Tokyo Station's Character Street (1st Basement) — a corridor of official character merchandise stores including One Piece, Jump, Studio Ghibli, and more. Tokyo Station Character Street is a must-visit for any anime fan — completely separate from the Akihabara scene and often has station-exclusive designs." },
+
+  { name:"Jewelry — Harajuku (Jingumae 4-32-6)", address:"Jingumae 4-32-6 SK Harajuku 88 Bldg 3F, Shibuya, Tokyo",
+    coords:[35.6691,139.7060], cat:"shopping", city:"tokyo",
+    note:"Jewelry store",
+    guide:"3rd floor jewelry studio in Harajuku. Harajuku has a strong concentration of independent jewelry designers — pieces range from edgy streetwear-inspired to delicate fine jewelry. The SK Harajuku 88 building has multiple creative tenants worth exploring." },
+
+  { name:"Jewelry — Harajuku (Jingumae 3-21-12)", address:"Jingumae 3-21-12 Nakada Bldg B1, Shibuya, Tokyo",
+    coords:[35.6703,139.7052], cat:"shopping", city:"tokyo",
+    note:"Jewelry store",
+    guide:"Basement jewelry shop in central Harajuku. The basement boutiques along Omotesando's side streets are underrated for finding unique jewelry at non-flagship prices. Worth digging into." },
+
+  { name:"Jewelry — Harajuku (Jingumae 5-28-7)", address:"5 Chome-28-7 Jingumae, Shibuya, Tokyo",
+    coords:[35.6680,139.7030], cat:"shopping", city:"tokyo",
+    note:"Jewelry store",
+    guide:"Another Harajuku jewelry spot in southern Jingumae — closer to Omotesando end. This zone (Omotesando → Harajuku) has Japan's highest concentration of independent jewelry and accessory designers. Budget at least 2 hours to properly browse." },
+
+  // ════════════════ KYOTO ════════════════
+
+  { name:"Cafe — Arashiyama (Sagatenryuji)", address:"3-47 Sagatenryuji Susukinobabacho, Ukyo Ward, Kyoto",
+    coords:[35.0157,135.6718], cat:"cafe", city:"kyoto",
+    note:"Kyoto cafe",
+    guide:"A cafe in the Arashiyama area near Tenryuji Temple. Arashiyama cafes often feature garden views, matcha desserts, and a refined slow atmosphere. After coffee, walk through the bamboo grove (2min away), then rent a boat on the Oi River. Arrive before 9AM to beat crowds." },
+
+  { name:"Cafe — Nakagyo (Iseyacho)", address:"341-1 Iseyacho, Nakagyo Ward, Kyoto",
+    coords:[35.0101,135.7575], cat:"cafe", city:"kyoto",
+    note:"Kyoto cafe",
+    guide:"Nakagyo Ward cafe near Nijo Castle and Kyoto's central machiya (townhouse) district. Kyoto cafes in renovated machiya buildings are an experience in themselves — 100+ year old wooden interiors serving specialty coffee and wagashi (Japanese sweets). A genuine retreat from temple-touring." },
+
+  { name:"Cafe — Kiyomizu (2 Chome-258)", address:"2 Chome-258 Kiyomizu, Higashiyama Ward, Kyoto",
+    coords:[34.9948,135.7849], cat:"cafe", city:"kyoto",
+    note:"Kyoto cafe",
+    guide:"On the famous Kiyomizuzaka slope leading up to Kiyomizu-dera Temple. This cafe offers a perfect rest point before or after the temple — the Higashiyama area is Japan's most scenic historic district. Look for matcha soft-serve, yatsuhashi (cinnamon mochi), and amazake here." },
+
+  { name:"Cafe — Higashiyama (Washiocho)", address:"505 Washiocho, Higashiyama Ward, Kyoto",
+    coords:[34.9961,135.7851], cat:"cafe", city:"kyoto",
+    note:"Kyoto cafe",
+    guide:"Hidden in the Higashiyama backstreets — the winding stone-paved lanes around here are Kyoto at its most photogenic. A cafe in this area is likely in a beautifully converted traditional building. Wander the Ninenzaka and Sannenzaka streets nearby for the full effect." },
+
+  { name:"Cafe — Higashiyama (Shimokawaracho)", address:"Shimokawaracho 463-17, Higashiyama Ward, Kyoto",
+    coords:[34.9958,135.7861], cat:"cafe", city:"kyoto",
+    note:"Kyoto cafe",
+    guide:"Another Higashiyama area cafe recommendation. This neighborhood has the highest density of quality small cafes in all of Japan. Look for ones without signs out front — the best spots are often deliberately subtle. The Chionin and Nanzenji temples are a short walk." },
+
+  { name:"Kiyomizu-dera Temple", address:"1 Chome-294 Kiyomizu, Higashiyama, Kyoto",
+    coords:[34.9949,135.7851], cat:"shrine", city:"kyoto",
+    note:"",
+    guide:"UNESCO World Heritage site. The wooden stage built from interlocking wooden beams (no nails) juts out over a 13m cliff giving views across Kyoto. Visit at dawn (opens 6AM) to avoid crowds, or at dusk for golden light. The Otowa waterfall below has three streams — drink from each for love, longevity, and academic success." },
+
+  { name:"Kurama Shrine", address:"1074 Kuramahonmachi, Sakyo Ward, Kyoto",
+    coords:[35.1148,135.7697], cat:"shrine", city:"kyoto",
+    note:"Shrine in Kyoto",
+    guide:"Kuramayama shrine deep in the mountains north of Kyoto. Take the Eizan Railway to Kurama station (45min from central Kyoto) and hike up through ancient cedar forests. The full mountain trail connecting Kurama to Kibune village (2hrs) is one of Japan's best day hikes." },
+
+  { name:"Nanzenji Temple Complex", address:"Nanzenji Fukuchicho 86-8, Sakyo Ward, Kyoto",
+    coords:[35.0113,135.7934], cat:"shrine", city:"kyoto",
+    note:"Shrine in Kyoto",
+    guide:"One of Kyoto's most impressive Zen temple complexes. The enormous Sanmon gate, the Aqueduct (a Roman-style brick viaduct running through the temple grounds — surreally photogenic), and the surrounding sub-temples. Nanzenji connects to the Philosopher's Path — a 2km canal-side walk to Ginkakuji Silver Pavilion." },
+
+  { name:"Arashiyama", address:"Sagakamenoocho, Ukyo Ward, Kyoto",
+    coords:[35.0094,135.6727], cat:"attraction", city:"kyoto",
+    note:"",
+    guide:"Kyoto's western district famous for the bamboo grove (Sagano), Tenryuji Zen garden, the Togetsukyo bridge, and monkey park. Go at 6-7AM before crowds arrive. Rent a rickshaw to explore the area comfortably. The Okochi Sanso villa garden (¥1,000, includes matcha) is Arashiyama's hidden gem." },
+
+  { name:"TRAVELER'S FACTORY Kyoto", address:"Banocho 586-2 1F, Nakagyo Ward, Kyoto",
+    coords:[35.0049,135.7571], cat:"shopping", city:"kyoto",
+    note:"Leather notebook / TRAVELER'S FACTORY",
+    guide:"The Kyoto outpost of the legendary TRAVELER'S NOTEBOOK brand — handmade leather journals with a cult following. The store sells notebooks, refill inserts, stamps, accessories, and Kyoto-exclusive designs. The notebooks are made to last a lifetime and develop beautiful patina. A perfect Kyoto souvenir." },
+
+  { name:"Japan Edition Store — Iseyacho", address:"Iseyacho 350, Nakagyo Ward, Kyoto",
+    coords:[35.0101,135.7571], cat:"shopping", city:"kyoto",
+    note:"Japan edition store",
+    guide:"A store featuring Japan-exclusive editions of books, art, and design items — the kind of things you can only find in Japan and nowhere else. Kyoto's Nakagyo Ward has a high density of excellent independent shops and galleries." },
+
+  { name:"B-Side Label — Kyoto", address:"Teramachi-dori, Nakagyo Ward, Kyoto",
+    coords:[35.0060,135.7610], cat:"shopping", city:"kyoto",
+    note:"Sticker store",
+    guide:"The Kyoto location of B-Side Label stickers. Kyoto-exclusive designs often feature temple motifs, kitsune foxes, and traditional patterns in the brand's bold graphic style. The Teramachi shopping arcade is one of Japan's most atmospheric covered shopping streets — walk the full length." },
+
+  { name:"Pokémon Center — Kyoto (SUINA Muromachi)", address:"Kankobokocho 78 Kyoto Keizai Center SUINA 2F, Shimogyo, Kyoto",
+    coords:[35.0028,135.7587], cat:"pokemon", city:"kyoto",
+    note:"",
+    guide:"Kyoto Pokémon Center with exclusive designs featuring Kyoto cultural motifs — Gengar in kimono, Pikachu at the geisha district, etc. Located in a newer commercial complex near Shijo-Karasuma intersection. The surrounding Nishiki Market (Kyoto's Kitchen) is a short walk." },
+
+  { name:"One Piece Shop — Kyoto", address:"Shioyacho 344, Nakagyo Ward, Kyoto",
+    coords:[35.0045,135.7572], cat:"anime", city:"kyoto",
+    note:"",
+    guide:"Official One Piece store in central Kyoto. Stocks Kyoto-exclusive merchandise alongside the standard range. The surrounding Nakagyo Ward has great machiya cafes and the Nishiki covered market nearby — a perfect combination." },
+
+  { name:"Cute Town — Ine, Kyoto", address:"Hirata, Ine, Yoza District, Kyoto",
+    coords:[35.6882,135.2769], cat:"attraction", city:"kyoto",
+    note:"Cute town",
+    guide:"Ine is one of Japan's most extraordinary hidden gems — a tiny fishing village where traditional funaya (boathouse) homes line the bay, with boat garages at water level and living quarters above. Only accessible by bus from Amanohashidate or car. The bay boat tours give the best views. Almost no tourists, completely authentic." },
+
+  // ════════════════ OTHER (Yokohama, etc.) ════════════════
+
+  { name:"Camera Engraver — Yokohama", address:"Near 166-99 Yamashitacho, Naka Ward, Yokohama",
+    coords:[35.4448,139.6421], cat:"shopping", city:"other",
+    note:"Camera engraver dude",
+    guide:"A craftsman engraver near the Yamashitacho area in Yokohama who does beautiful custom engravings on cameras, knives, and other items. Yokohama's Chinatown and Motomachi shopping street are nearby — make a day of it. Yamashita Park along the waterfront is lovely in the evening." },
+
+];
+
+// ─────────────────────────────────────────────────────────────
+//  MAP SETUP
+// ─────────────────────────────────────────────────────────────
+const map = L.map('map', {
+  center: [35.6, 136.5],
+  zoom: 6,
+  zoomControl: true
+});
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '© OpenStreetMap contributors © CARTO',
+  subdomains: 'abcd',
+  maxZoom: 19
+}).addTo(map);
+
+// Move zoom control to bottom-right
+map.zoomControl.remove();
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+// ─────────────────────────────────────────────────────────────
+//  MARKER CREATION
+// ─────────────────────────────────────────────────────────────
+function createMarker(loc) {
+  const cfg = CATS[loc.cat] || { color: '#aaa' };
+  const icon = L.divIcon({
+    className: '',
+    html: `<div class="custom-marker" style="background:${cfg.color}"><span>${getCatEmoji(loc.cat)}</span></div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 28],
+    popupAnchor: [0, -28]
+  });
+  const marker = L.marker(loc.coords, { icon });
+  marker.bindPopup(buildPopup(loc), { maxWidth: 340 });
+  return marker;
+}
+
+function getCatEmoji(cat) {
+  const emojis = {
+    food:'🍜', bookshop:'📚', cards:'🃏', fashion:'👟',
+    attraction:'🏙️', photo:'📸', shrine:'⛩️', cafe:'☕',
+    pokemon:'⚡', market:'🏪', bar:'🍺', onsen:'♨️',
+    anime:'🎌', climbing:'🧗', shopping:'🛍️'
+  };
+  return emojis[cat] || '📍';
+}
+
+function buildPopup(loc) {
+  const cfg = CATS[loc.cat] || { color: '#aaa', label: loc.cat };
+  return `
+    <div class="popup-header">
+      <div class="popup-cat-tag" style="color:${cfg.color};border-color:${cfg.color}30;background:${cfg.color}12">
+        ${cfg.label || loc.cat}
+      </div>
+      <div class="popup-name">${loc.name}</div>
+      <div class="popup-address">${loc.address}</div>
+    </div>
+    <div class="popup-body">
+      ${loc.note ? `<div class="popup-note">📝 ${loc.note}</div>` : ''}
+      <div class="popup-guide">${loc.guide}</div>
+    </div>`;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────────────────────
+let activeCity = 'all';
+let activeCats = new Set(Object.keys(CATS));
+let searchQuery = '';
+let markers = [];
+let activeItemEl = null;
+
+// ─────────────────────────────────────────────────────────────
+//  BUILD CATEGORY FILTER BUTTONS
+// ─────────────────────────────────────────────────────────────
+const catFiltersEl = document.getElementById('cat-filters');
+Object.entries(CATS).forEach(([key, cfg]) => {
+  const btn = document.createElement('button');
+  btn.className = 'cat-btn active';
+  btn.textContent = cfg.label;
+  btn.style.color = cfg.color;
+  btn.style.borderColor = cfg.color + '60';
+  btn.dataset.cat = key;
+  btn.addEventListener('click', () => {
+    if (activeCats.has(key)) {
+      activeCats.delete(key);
+      btn.classList.remove('active');
+    } else {
+      activeCats.add(key);
+      btn.classList.add('active');
+    }
+    render();
+  });
+  catFiltersEl.appendChild(btn);
+});
+
+// ─────────────────────────────────────────────────────────────
+//  CITY TABS
+// ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.city-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.city-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    activeCity = tab.dataset.city;
+    render();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+//  SEARCH
+// ─────────────────────────────────────────────────────────────
+document.getElementById('search').addEventListener('input', e => {
+  searchQuery = e.target.value.toLowerCase();
+  render();
+});
+
+// ─────────────────────────────────────────────────────────────
+//  RENDER
+// ─────────────────────────────────────────────────────────────
+function render() {
+  // Remove old markers
+  markers.forEach(m => map.removeLayer(m.marker));
+  markers = [];
+
+  const list = document.getElementById('location-list');
+  list.innerHTML = '';
+
+  const filtered = ALL_LOCS.filter(loc => {
+    if (activeCity !== 'all' && loc.city !== activeCity) return false;
+    if (!activeCats.has(loc.cat)) return false;
+    if (searchQuery && !loc.name.toLowerCase().includes(searchQuery)
+      && !loc.address.toLowerCase().includes(searchQuery)
+      && !(loc.note||'').toLowerCase().includes(searchQuery)
+      && !loc.guide.toLowerCase().includes(searchQuery)) return false;
+    return true;
+  });
+
+  document.getElementById('count-showing').textContent = filtered.length;
+  document.getElementById('count-total').textContent = ALL_LOCS.length;
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="no-results">No locations found.<br>Try adjusting filters.</div>';
+    return;
+  }
+
+  filtered.forEach(loc => {
+    const cfg = CATS[loc.cat] || { color: '#aaa' };
+    const marker = createMarker(loc);
+    marker.addTo(map);
+    markers.push({ loc, marker });
+
+    // Sidebar list item
+    const item = document.createElement('div');
+    item.className = 'loc-item';
+    item.innerHTML = `
+      <div class="loc-dot" style="background:${cfg.color}"></div>
+      <div class="loc-info">
+        <div class="loc-name">${loc.name}</div>
+        <div class="loc-meta">${getCatEmoji(loc.cat)} ${(cfg.label||loc.cat).replace(/^[^ ]+ /,'')} · ${loc.city.charAt(0).toUpperCase()+loc.city.slice(1)}</div>
+      </div>
+      ${loc.note ? `<div class="loc-note-badge">${loc.note}</div>` : ''}
+    `;
+    item.addEventListener('click', () => {
+      map.setView(loc.coords, 16, { animate: true });
+      setTimeout(() => marker.openPopup(), 400);
+      if (activeItemEl) activeItemEl.classList.remove('active');
+      item.classList.add('active');
+      activeItemEl = item;
+    });
+    marker.on('click', () => {
+      if (activeItemEl) activeItemEl.classList.remove('active');
+      item.classList.add('active');
+      activeItemEl = item;
+      item.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    });
+    list.appendChild(item);
+  });
+}
+
+// Initial render
+render();
+</script>
+</body>
+</html>
